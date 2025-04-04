@@ -13,7 +13,6 @@ const NotFound = (): JSX.Element => {
   return (
     <div className="min-h-screen bg-[#1a1d29] text-white flex flex-col items-center justify-center p-4">
       <div className="max-w-md w-full text-center animate-fade-in">
-        {/* Animated 404 text */}
         <div className="relative mb-8">
           <h1 className="text-9xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 to-red-500">
             404
@@ -28,10 +27,9 @@ const NotFound = (): JSX.Element => {
           Don&apos;t worry - even the most volatile assets find their way back.
         </p>
 
-        {/* Crypto-themed illustration */}
         <div className="relative w-64 h-64 mx-auto mb-8">
           <Image
-            src="/assets/not-found.svg" // Replace with your own image or use a public one
+            src="/assets/not-found.svg"
             alt="Crypto astronaut lost in space"
             width={400}
             height={400}
@@ -40,7 +38,6 @@ const NotFound = (): JSX.Element => {
           />
         </div>
 
-        {/* Action buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button
             onClick={() => router.back()}
@@ -65,7 +62,6 @@ const NotFound = (): JSX.Element => {
           </Link>
         </div>
 
-        {/* Crypto market status for fun */}
         <div className="mt-8 p-4 bg-[#252836] rounded-lg text-left">
           <div className="flex items-center mb-2">
             <div className="h-2 w-2 rounded-full bg-green-500 mr-2 animate-pulse"></div>

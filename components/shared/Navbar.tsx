@@ -10,7 +10,6 @@ import { DialogTitle } from "@radix-ui/react-dialog";
 const Navbar: React.FC = () => {
   return (
     <nav className="border-b border-black py-4 px-4 flex items-center justify-between">
-      {/* Logo */}
       <Link className="text-white font-bold text-2xl sm:text-3xl" href="/">
         <span className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
           IVX
@@ -18,9 +17,7 @@ const Navbar: React.FC = () => {
         Labs
       </Link>
 
-      {/* Mobile Menu */}
       <Sheet>
-        {/* Hamburger Button */}
         <SheetTrigger asChild>
           <Button
             variant="outline"
@@ -32,27 +29,24 @@ const Navbar: React.FC = () => {
           </Button>
         </SheetTrigger>
 
-        {/* Sidebar Content */}
         <SheetContent
           side="right"
           className="bg-[#1a1d29] text-white p-6 rounded-l-lg shadow-lg"
         >
-          {/* Add DialogTitle for accessibility */}
           <VisuallyHidden>
             <DialogTitle>Mobile Navigation Menu</DialogTitle>
           </VisuallyHidden>
 
-          {/* Links */}
           <div className="flex flex-col gap-6 mt-8">
             <Link
               className="text-lg font-semibold hover:text-gray-300 transition-colors"
-              href="/"
+              href="/login"
             >
               Login
             </Link>
             <Link
               className="bg-[#FFFB1D] px-4 py-2 rounded-md text-black font-extrabold text-center hover:bg-yellow-300 transition-colors"
-              href="/"
+              href="/join"
             >
               JOIN NOW
             </Link>
@@ -60,17 +54,16 @@ const Navbar: React.FC = () => {
         </SheetContent>
       </Sheet>
 
-      {/* Desktop Menu */}
       <div className="font-extrabold uppercase hidden md:flex items-center gap-4">
         <Link
           className="text-white hover:text-gray-300 transition-colors"
-          href="/"
+          href="/login"
         >
           login
         </Link>
         <Link
           className="bg-[#FFFB1D] px-4 py-2 rounded-md text-black font-extrabold hover:bg-yellow-300 transition-colors"
-          href="/"
+          href="/join"
         >
           join now
         </Link>
