@@ -134,3 +134,13 @@ body {
     )
     rgb(var(--background-start-rgb));
 }
+
+.chart-container {
+  touch-action: pan-x pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#tv-attr-logo {
+  display: none;
+}

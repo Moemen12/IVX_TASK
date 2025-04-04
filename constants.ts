@@ -36,6 +36,7 @@ export const options: DeepPartial<ChartOptions> = {
     mode: 0,
     vertLine: {
       width: 1,
+      labelBackgroundColor: "#262C36",
       color: "rgba(224, 227, 235, 0.1)",
       style: LineStyle.Solid,
     },
@@ -52,6 +53,14 @@ export const options: DeepPartial<ChartOptions> = {
     rightOffset: 5,
     barSpacing: 10,
     fixLeftEdge: true,
+    // tickMarkFormatter: (time, tickMarkType, locale) => {
+    //   const date = new Date(time * 1000); // Convert from seconds to milliseconds
+    //   const hours = String(date.getHours()).padStart(2, "0");
+    //   const minutes = String(date.getMinutes()).padStart(2, "0");
+    //   const seconds = String(date.getSeconds()).padStart(2, "0");
+
+    //   return `${hours}:${minutes}:${seconds}`;
+    // },
     lockVisibleTimeRangeOnResize: true,
     rightBarStaysOnScroll: true,
     borderVisible: true,
@@ -78,7 +87,6 @@ export const options: DeepPartial<ChartOptions> = {
   },
   handleScroll: {
     mouseWheel: true,
-    vertTouchDrag: true,
     pressedMouseMove: true,
   },
 };
@@ -87,11 +95,12 @@ export const areaSeriesOptions: DeepPartial<
   AreaStyleOptions | SeriesOptionsCommon
 > = {
   lineColor: "#f7cb07",
-  topColor: "rgba(247, 203, 7, 0.4)",
-  bottomColor: "rgba(247, 203, 7, 0.04)",
+  topColor: "rgba(247, 203, 7, 0.08)",
+  bottomColor: "rgba(247, 203, 7, 0.02)",
   lineWidth: 2,
   lastValueVisible: false,
   priceLineVisible: false,
+  crosshairMarkerVisible: false,
 };
 
 export const lineSeriesOptions: DeepPartial<
@@ -99,21 +108,10 @@ export const lineSeriesOptions: DeepPartial<
 > = {
   color: "#f7cb07",
   lineWidth: 2,
-  crosshairMarkerVisible: true,
-  crosshairMarkerRadius: 4,
+  crosshairMarkerVisible: false,
   lastValueVisible: true,
   priceLineVisible: true,
   priceLineWidth: 1,
   priceLineColor: "#f7cb07",
   priceLineStyle: LineStyle.Dashed,
-};
-
-export const topLineSeriesOptions: DeepPartial<
-  LineSeriesOptions | SeriesOptionsCommon
-> = {
-  color: "#00ff00", // Green color for the top line
-  lineWidth: 2,
-  crosshairMarkerVisible: false, // Disable markers for the top line
-  lastValueVisible: false, // Hide the last value label
-  priceLineVisible: false, // Hide the price line
 };

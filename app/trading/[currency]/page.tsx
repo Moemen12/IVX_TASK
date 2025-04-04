@@ -8,10 +8,10 @@ import {
   type IChartApi,
   type ISeriesApi,
   type Time,
-  LineData,
+  type LineData,
 } from "lightweight-charts";
 import { Search } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { notFound, usePathname, useRouter } from "next/navigation";
 import {
   areaSeriesOptions,
   cryptoCurrencies,
@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
+import type {
   AggTradeEvent,
   ConnectionStatus,
   PriceDirection,
@@ -64,6 +64,14 @@ export default function TradingPage() {
 
   // Extract the base currency from the URL path
   const baseCurrency = pathname.split("/").pop() || "BTC";
+
+  const validCurrency = cryptoCurrencies.some(
+    (c) => c.symbol.toLowerCase() === baseCurrency.toLowerCase()
+  );
+
+  if (!validCurrency) {
+    notFound();
+  }
 
   // Trading pair and timeframe state
   const [symbol, setSymbol] = useState(`${baseCurrency}USDT`);
@@ -198,9 +206,23 @@ export default function TradingPage() {
       setPreviousPrice(currentPrice);
       setCurrentPrice(newPrice);
 
-      // Update chart if series exist (but limit updates to avoid performance issues)
+      // Update chart if series exist (but limit updates based on timeframe)
       const now = Date.now();
-      if (lineSeries && areaSeries && now - chartUpdateTimeRef.current > 300) {
+
+      // Calculate minimum time between updates based on timeframe
+      let updateInterval = 300; // Default for 1m
+      if (timeframe === "5m") updateInterval = 5 * 60 * 1000;
+      if (timeframe === "15m") updateInterval = 15 * 60 * 1000;
+      if (timeframe === "1h") updateInterval = 60 * 60 * 1000;
+      if (timeframe === "4h") updateInterval = 4 * 60 * 60 * 1000;
+      if (timeframe === "1d") updateInterval = 24 * 60 * 60 * 1000;
+
+      // Only update chart if enough time has passed according to timeframe
+      if (
+        lineSeries &&
+        areaSeries &&
+        now - chartUpdateTimeRef.current > updateInterval
+      ) {
         try {
           const time = (now / 1000) as Time;
           const candleData: LineData = {
@@ -216,7 +238,7 @@ export default function TradingPage() {
         }
       }
     },
-    [currentPrice, previousPrice, lineSeries, areaSeries]
+    [currentPrice, previousPrice, lineSeries, areaSeries, timeframe]
   );
 
   // Set up interval for updating price every 100ms
@@ -266,30 +288,23 @@ export default function TradingPage() {
         // Use Binance Futures API for historical data
         const url = `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${timeframe}&limit=500`;
         const response = await fetch(url);
-
         if (!response.ok) {
           throw new Error(`API responded with status: ${response.status}`);
         }
-
         const data = await response.json();
-
         if (!isMounted) return;
-
         if (!Array.isArray(data)) {
           console.error("API did not return an array:", data);
           setIsLoading(false);
           return;
         }
-
         const formattedData: LineData[] = data.map((d) => ({
           time: (d[0] / 1000) as Time,
           value: Number.parseFloat(d[4]),
         }));
-
         if (lineSeries && areaSeries) {
           lineSeries.setData(formattedData);
           areaSeries.setData(formattedData);
-
           if (formattedData.length > 0) {
             const latestPrice = formattedData[formattedData.length - 1].value;
             latestPriceRef.current = latestPrice;
@@ -297,9 +312,7 @@ export default function TradingPage() {
             setPreviousPrice(latestPrice);
           }
         }
-
         setIsLoading(false);
-
         if (isMounted) {
           // Connect to WebSocket for price updates
           connectWebSocket();
@@ -309,7 +322,6 @@ export default function TradingPage() {
         if (isMounted) {
           setIsLoading(false);
           setConnectionStatus("disconnected");
-
           // Try again after a delay
           reconnectTimeoutRef.current = setTimeout(fetchHistoricalData, 5000);
         }
@@ -320,23 +332,19 @@ export default function TradingPage() {
     const connectWebSocket = () => {
       try {
         const lowerCaseSymbol = symbol.toLowerCase();
-
         // Use Binance Futures WebSocket with aggTrade stream
         const ws = new WebSocket(
           `wss://fstream.binance.com/ws/${lowerCaseSymbol}@aggTrade`
         );
-
         wsRef.current = ws;
 
         // Set up ping interval to keep connection alive
         let pingInterval: NodeJS.Timeout | null = null;
-
         ws.onopen = () => {
           console.log(
             `WebSocket connected for ${symbol} using aggTrade stream`
           );
           setConnectionStatus("connected");
-
           // Send ping every 3 minutes to keep connection alive
           pingInterval = setInterval(() => {
             if (ws.readyState === WebSocket.OPEN) {
@@ -344,13 +352,10 @@ export default function TradingPage() {
             }
           }, 3 * 60 * 1000);
         };
-
         ws.onmessage = (event) => {
           if (!isMounted) return;
-
           try {
             const message = JSON.parse(event.data) as AggTradeEvent;
-
             // The 'p' field contains the price
             if (message.p) {
               const newPrice = Number.parseFloat(message.p);
@@ -360,22 +365,18 @@ export default function TradingPage() {
             console.error("Error processing WebSocket message:", error);
           }
         };
-
         ws.onerror = (error) => {
           console.error("WebSocket error:", error);
           setConnectionStatus("disconnected");
         };
-
         ws.onclose = (event) => {
           console.log(`WebSocket closed with code: ${event.code}`);
           setConnectionStatus("disconnected");
-
           // Clear ping interval
           if (pingInterval) {
             clearInterval(pingInterval);
             pingInterval = null;
           }
-
           // Try to reconnect if component is still mounted
           if (isMounted && wsRef.current === ws) {
             reconnectTimeoutRef.current = setTimeout(connectWebSocket, 2000);
@@ -383,7 +384,6 @@ export default function TradingPage() {
         };
       } catch (error) {
         console.error("Error setting up WebSocket:", error);
-
         if (isMounted) {
           setConnectionStatus("disconnected");
           // Try again after a delay
@@ -396,13 +396,11 @@ export default function TradingPage() {
 
     return () => {
       isMounted = false;
-
       // Close WebSocket if it exists
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
       }
-
       // Clear any reconnect timeout
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
@@ -410,7 +408,6 @@ export default function TradingPage() {
       }
     };
   }, [symbol, timeframe, lineSeries, areaSeries]);
-
   // Handle mouse and touch events for chart dragging
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -475,15 +472,15 @@ export default function TradingPage() {
 
   return (
     <div className="flex flex-col w-full h-screen bg-[#1a1d29] text-white p-4">
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 mb-4">
         <div className="flex items-center gap-2">
           <Select onValueChange={handleCurrencyChange} value={baseCurrency}>
             <SelectTrigger className="bg-[#252836] text-white hover:bg-[#2a2d3a] transition-colors border-0">
               <SelectValue>
                 <div className="flex items-center gap-2">
                   <Image
-                    width={24}
-                    height={24}
+                    width={20}
+                    height={20}
                     src={currentCurrency.icon || "/placeholder.svg"}
                     alt={currentCurrency.name}
                     className="rounded-full"
@@ -526,8 +523,8 @@ export default function TradingPage() {
                       className="flex items-center gap-3 px-4 py-2 hover:bg-[#2a2d3a] transition-colors"
                     >
                       <Image
-                        width={24}
-                        height={24}
+                        width={20}
+                        height={20}
                         src={currency.icon || "/placeholder.svg"}
                         alt={currency.name}
                         className="rounded-full"
@@ -577,13 +574,13 @@ export default function TradingPage() {
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-1 md:gap-2">
           {(["1m", "5m", "15m", "1h", "4h", "1d"] as TimeframeOption[]).map(
             (tf) => (
               <button
                 key={tf}
                 onClick={() => handleTimeframeChange(tf)}
-                className={`px-3 py-1 rounded ${
+                className={`px-2 py-1 text-xs sm:px-3 sm:py-1 sm:text-sm rounded ${
                   timeframe === tf
                     ? "bg-yellow-500 text-black"
                     : "bg-gray-800 text-gray-300 hover:bg-gray-700"

@@ -4,6 +4,11 @@ export interface CryptoCurrency {
   icon: string;
 }
 
+export interface BinanceHistoricalError {
+  code: string;
+  msg: string;
+}
+
 export interface LineData {
   time: Time;
   value: number;
