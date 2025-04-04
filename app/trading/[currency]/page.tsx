@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   createChart,
@@ -64,18 +63,16 @@ export default function TradingPage() {
 
   // Extract the base currency from the URL path
   const baseCurrency = pathname.split("/").pop() || "BTC";
-
   const validCurrency = cryptoCurrencies.some(
     (c) => c.symbol.toLowerCase() === baseCurrency.toLowerCase()
   );
-
   if (!validCurrency) {
     notFound();
   }
 
   // Trading pair and timeframe state
   const [symbol, setSymbol] = useState(`${baseCurrency}USDT`);
-  const [timeframe, setTimeframe] = useState<TimeframeOption>("1m");
+  const [timeframe, setTimeframe] = useState<TimeframeOption | null>(null); // Default: No timeframe selected
 
   // Key for remounting chart when currency changes
   const [chartKey, setChartKey] = useState(baseCurrency);
@@ -145,51 +142,6 @@ export default function TradingPage() {
     };
   }, [chartKey]); // Important: Chart re-initializes when chartKey changes
 
-  // Update price labels based on direction
-  useEffect(() => {
-    if (!chart || !priceDirection || !currentPrice) return;
-
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === "childList") {
-          const priceLabels = document.querySelectorAll(
-            ".lightweight-charts-price-axis-label"
-          );
-          priceLabels.forEach((label) => {
-            const labelElement = label as HTMLElement;
-            const labelText = labelElement.textContent;
-            if (labelText && currentPrice) {
-              const labelValue = Number.parseFloat(labelText.replace(/,/g, ""));
-              if (Math.abs(labelValue - currentPrice) < 0.01) {
-                const parentElement = labelElement.parentElement;
-                if (parentElement) {
-                  if (priceDirection === "up") {
-                    parentElement.classList.add("price-up");
-                    parentElement.classList.remove("price-down");
-                  } else if (priceDirection === "down") {
-                    parentElement.classList.add("price-down");
-                    parentElement.classList.remove("price-up");
-                  }
-                }
-              }
-            }
-          });
-        }
-      });
-    });
-
-    if (chartContainerRef.current) {
-      observer.observe(chartContainerRef.current, {
-        childList: true,
-        subtree: true,
-      });
-    }
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [chart, priceDirection, currentPrice]);
-
   // Function to update price and chart
   const updatePriceAndChart = useCallback(
     (newPrice: number) => {
@@ -210,7 +162,8 @@ export default function TradingPage() {
       const now = Date.now();
 
       // Calculate minimum time between updates based on timeframe
-      let updateInterval = 300; // Default for 1m
+      let updateInterval = 300; // Default for no timeframe (300ms)
+      if (timeframe === "1m") updateInterval = 60 * 1000; // 1 minute
       if (timeframe === "5m") updateInterval = 5 * 60 * 1000;
       if (timeframe === "15m") updateInterval = 15 * 60 * 1000;
       if (timeframe === "1h") updateInterval = 60 * 60 * 1000;
@@ -229,7 +182,6 @@ export default function TradingPage() {
             time,
             value: newPrice,
           };
-
           lineSeries.update(candleData);
           areaSeries.update(candleData);
           chartUpdateTimeRef.current = now;
@@ -241,7 +193,7 @@ export default function TradingPage() {
     [currentPrice, previousPrice, lineSeries, areaSeries, timeframe]
   );
 
-  // Set up interval for updating price every 100ms
+  // Set up interval for updating price every 300ms (default behavior)
   useEffect(() => {
     // Function to update UI with latest price
     const updateUI = () => {
@@ -251,7 +203,7 @@ export default function TradingPage() {
     };
 
     // Set up interval
-    priceUpdateIntervalRef.current = setInterval(updateUI, 100);
+    priceUpdateIntervalRef.current = setInterval(updateUI, 300); // Default: 300ms
 
     // Clean up interval on unmount
     return () => {
@@ -286,7 +238,9 @@ export default function TradingPage() {
     const fetchHistoricalData = async () => {
       try {
         // Use Binance Futures API for historical data
-        const url = `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${timeframe}&limit=500`;
+        const url = `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${
+          timeframe || "1m"
+        }&limit=500`;
         const response = await fetch(url);
         if (!response.ok) {
           throw new Error(`API responded with status: ${response.status}`);
@@ -298,10 +252,12 @@ export default function TradingPage() {
           setIsLoading(false);
           return;
         }
+
         const formattedData: LineData[] = data.map((d) => ({
           time: (d[0] / 1000) as Time,
           value: Number.parseFloat(d[4]),
         }));
+
         if (lineSeries && areaSeries) {
           lineSeries.setData(formattedData);
           areaSeries.setData(formattedData);
@@ -312,6 +268,7 @@ export default function TradingPage() {
             setPreviousPrice(latestPrice);
           }
         }
+
         setIsLoading(false);
         if (isMounted) {
           // Connect to WebSocket for price updates
@@ -352,6 +309,7 @@ export default function TradingPage() {
             }
           }, 3 * 60 * 1000);
         };
+
         ws.onmessage = (event) => {
           if (!isMounted) return;
           try {
@@ -365,10 +323,12 @@ export default function TradingPage() {
             console.error("Error processing WebSocket message:", error);
           }
         };
+
         ws.onerror = (error) => {
           console.error("WebSocket error:", error);
           setConnectionStatus("disconnected");
         };
+
         ws.onclose = (event) => {
           console.log(`WebSocket closed with code: ${event.code}`);
           setConnectionStatus("disconnected");
@@ -408,6 +368,7 @@ export default function TradingPage() {
       }
     };
   }, [symbol, timeframe, lineSeries, areaSeries]);
+
   // Handle mouse and touch events for chart dragging
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -435,13 +396,13 @@ export default function TradingPage() {
     container.addEventListener("mousedown", handleMouseDown);
     document.addEventListener("mouseup", handleMouseUp);
     container.addEventListener("touchstart", handleTouchStart);
-    document.addEventListener("touchend", handleTouchEnd);
+    container.addEventListener("touchend", handleTouchEnd);
 
     return () => {
       container.removeEventListener("mousedown", handleMouseDown);
       document.removeEventListener("mouseup", handleMouseUp);
       container.removeEventListener("touchstart", handleTouchStart);
-      document.removeEventListener("touchend", handleTouchEnd);
+      container.removeEventListener("touchend", handleTouchEnd);
     };
   }, []);
 
@@ -456,12 +417,10 @@ export default function TradingPage() {
       wsRef.current.close();
       wsRef.current = null;
     }
-
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
-
     router.push(`/trading/${newCurrency}`);
   };
 

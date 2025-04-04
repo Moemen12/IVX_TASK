@@ -32,4 +32,11 @@ export interface AggTradeEvent {
   T: number; // Trade time
   m: boolean; // Is the buyer the market maker?
 }
-export type TimeframeOption = "1m" | "5m" | "15m" | "1h" | "4h" | "1d";
+export type TimeframeOption =
+  | "300ms"
+  | "1m"
+  | "5m"
+  | "15m"
+  | "1h"
+  | "4h"
+  | "1d";
