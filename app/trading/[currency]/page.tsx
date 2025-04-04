@@ -601,7 +601,7 @@ export default function TradingPage() {
 
       <div
         ref={chartContainerRef}
-        className={`w-full h-[600px] ${
+        className={`w-full h-[500px] ${
           isDragging ? "cursor-grabbing" : "cursor-grab"
         }`}
       />

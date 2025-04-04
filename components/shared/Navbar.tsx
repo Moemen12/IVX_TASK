@@ -25,7 +25,7 @@ const Navbar: React.FC = () => {
           <Button
             variant="outline"
             size="icon"
-            className="md:hidden bg-[#FFFB1D] text-black hover:bg-yellow-300 transition-colors"
+            className="md:hidden bg-[#e2df1ea8] text-black hover:bg-yellow-300 transition-colors border-0"
           >
             <Menu className="h-5 w-5" />
             <span className="sr-only">Toggle menu</span>
